@@ -1,41 +1,71 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <title>División del Dataset NLS-KDD</title>
-  <style>
-    body { background-color: #eaf4fc; font-family: Arial, sans-serif; text-align: center; }
-    .container { width: 80%; margin: auto; background: white; padding: 20px; border-radius: 15px; box-shadow: 0 0 10px #b0c4de; }
-    input[type=text] { width: 60%; padding: 10px; border: 2px solid #6fa3ef; border-radius: 10px; }
-    input[type=submit] { background-color: #6fa3ef; color: white; border: none; padding: 10px 20px; border-radius: 10px; cursor: pointer; }
-    img { width: 45%; margin: 10px; border-radius: 10px; }
-  </style>
+    <meta charset="UTF-8">
+    <title>Cargar Dataset desde URL</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
+    <style>
+        body {
+            background: linear-gradient(135deg, #e3f2fd, #bbdefb);
+            min-height: 100vh;
+        }
+        .card {
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            border-radius: 1rem;
+        }
+        h2 {
+            color: #0d47a1;
+            font-weight: 600;
+        }
+        .table {
+            background-color: #ffffff;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        .table thead {
+            background-color: #1565c0;
+            color: #fff;
+        }
+        .table tbody tr:nth-child(even) {
+            background-color: #e3f2fd;
+        }
+        .table tbody tr:hover {
+            background-color: #bbdefb;
+        }
+        .btn-primary {
+            background-color: #1565c0;
+            border: none;
+        }
+        .btn-primary:hover {
+            background-color: #0d47a1;
+        }
+    </style>
 </head>
-<body>
-<div class="container">
-  <h2>División del Dataset NLS-KDD</h2>
-  <form method="POST">
-    {% csrf_token %}
-    <input type="text" name="dataset_url" placeholder="Introduce la URL del archivo NLS-KDDTrain+.arff" required>
-    <input type="submit" value="Procesar">
-  </form>
+<body class="p-4">
+    <div class="container">
+        <div class="card p-4">
+            <h2 class="mb-4 text-center">📈 Cargar Dataset Reducido desde URL</h2>
 
-  {% if success %}
-  <h3>✅ Dataset procesado exitosamente</h3>
-  <p>Longitud total (20% reducido): {{ len_df }}</p>
-  <p>Training set: {{ len_train }}</p>
-  <p>Validation set: {{ len_val }}</p>
-  <p>Test set: {{ len_test }}</p>
+            <form method="POST" class="mb-4">
+                {% csrf_token %}
+                <div class="input-group">
+                    <input type="text" name="url" class="form-control"
+                           placeholder="Pega aquí la URL del dataset (.csv o .arff)"
+                           value="{{ url|default:'' }}" required>
+                    <button type="submit" class="btn btn-primary">Cargar</button>
+                </div>
+            </form>
 
-  <h3>Distribución de 'protocol_type'</h3>
-  {% for img in plots %}
-    <img src="data:image/png;base64,{{ img }}">
-  {% endfor %}
-  {% endif %}
+            {% if error %}
+                <div class="alert alert-danger">{{ error }}</div>
+            {% endif %}
 
-  {% if error %}
-  <p style="color:red;">{{ error }}</p>
-  {% endif %}
-</div>
+            {% if df_html %}
+                <div class="table-responsive mt-4">
+                    {{ df_html|safe }}
+                </div>
+            {% endif %}
+        </div>
+    </div>
 </body>
 </html>

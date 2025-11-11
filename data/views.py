@@ -1,55 +1,37 @@
-import pandas as pd
-import matplotlib
-matplotlib.use('Agg')  # Para generar gráficas sin interfaz
-import matplotlib.pyplot as plt
-import io, base64
+# views.py
 from django.shortcuts import render
-from scipy.io import arff
-from sklearn.model_selection import train_test_split
+import pandas as pd
 
-def index(request):
-    context = {}
+def dataset_upload_view(request):
+    df_html = None
+    error = None
+
     if request.method == 'POST':
-        url = request.POST.get('dataset_url')
+        url = request.POST.get('url')
+
+        # Si es GitHub, convertir a RAW
+        if 'github.com' in url:
+            url = url.replace('github.com', 'raw.githubusercontent.com')\
+                     .replace('/blob/', '/')
 
         try:
-            # Cargar dataset desde URL .arff
-            data, meta = arff.loadarff(url)
-            df = pd.DataFrame(data)
-            df['protocol_type'] = df['protocol_type'].astype(str)
+            # Leer CSV y manejar posibles líneas problemáticas
+            df = pd.read_csv(url, on_bad_lines='skip')
 
-            # Reducir dataset al 20%
-            df = df.sample(frac=0.2, random_state=42)
-            df.to_csv('dataset_reducido.csv', index=False)
+            # Si no existe columna 'id', agregarla al inicio
+            if 'id' not in df.columns:
+                df.insert(0, 'id', range(len(df)))
 
-            # División estratificada
-            train_set, temp_set = train_test_split(df, test_size=0.4, stratify=df['protocol_type'], random_state=42)
-            val_set, test_set = train_test_split(temp_set, test_size=0.5, stratify=temp_set['protocol_type'], random_state=42)
+            # Reordenar para que 'id' esté al inicio (por si acaso)
+            cols = df.columns.tolist()
+            if cols[0] != 'id':
+                cols.remove('id')
+                cols = ['id'] + cols
+                df = df[cols]
 
-            # Longitudes
-            context['len_df'] = len(df)
-            context['len_train'] = len(train_set)
-            context['len_val'] = len(val_set)
-            context['len_test'] = len(test_set)
-
-            # Graficar y guardar en base64
-            figs = []
-            for dataset, name in zip([df, train_set, val_set, test_set],
-                                     ['Dataset Completo (Reducido 20%)', 'Training Set', 'Validation Set', 'Test Set']):
-                fig, ax = plt.subplots()
-                dataset['protocol_type'].value_counts().plot(kind='bar', ax=ax)
-                ax.set_title(name)
-                buf = io.BytesIO()
-                plt.savefig(buf, format='png')
-                plt.close(fig)
-                buf.seek(0)
-                image_base64 = base64.b64encode(buf.getvalue()).decode('utf-8')
-                figs.append(image_base64)
-
-            context['plots'] = figs
-            context['success'] = True
-
+            # Mostrar solo las primeras 20 filas
+            df_html = df.head(20).to_html(classes='table table-striped', index=False)
         except Exception as e:
-            context['error'] = f"Error al cargar el dataset: {e}"
+            error = f"Error al cargar los datos: {e}"
 
-    return render(request, 'index.html', context)
+    return render(request, 'index.html', {'df_html': df_html, 'error': error})
