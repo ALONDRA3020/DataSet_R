@@ -1,1 +1,1 @@
-web: gunicorn dataweb.wsgi
+gunicorn dataweb.wsgi
